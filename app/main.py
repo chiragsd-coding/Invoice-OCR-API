@@ -1,15 +1,22 @@
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
 
 from app.routes.api import router as ocr_router
 from app.routes.auth import router as auth_router
-from app.routes.billing import router as billing_router, stripe_webhook
-from app.models.base import get_db
+from app.routes.billing import (
+    router as billing_router,
+    webhook_stripe,
+    webhook_razorpay,
+    webhook_cashfree,
+)
 
 app = FastAPI(
     title="Invoice OCR API",
-    description="OCR-powered invoice extraction with Stripe subscription billing.",
-    version="2.0.0",
+    description=(
+        "OCR-powered invoice extraction with subscription billing.\n\n"
+        "Supported payment gateways: **Stripe**, **Razorpay**, **Cashfree**.\n"
+        "Switch with `ACTIVE_GATEWAY` in `.env`."
+    ),
+    version="3.0.0",
 )
 
 # ---------------------------------------------------------------------------
@@ -19,26 +26,41 @@ app.include_router(ocr_router)
 app.include_router(auth_router)
 app.include_router(billing_router)
 
-# Stripe webhook needs the raw request body before any JSON parsing,
-# so it is registered as a plain route (not inside the billing router).
+# Webhook routes are registered outside their router so FastAPI does NOT
+# parse the body as JSON before the handler reads the raw bytes.
+# Signature verification requires the exact raw body the gateway signed.
 app.add_api_route(
     "/webhooks/stripe",
-    stripe_webhook,
+    webhook_stripe,
     methods=["POST"],
-    tags=["billing"],
+    tags=["webhooks"],
     summary="Stripe webhook receiver",
+)
+app.add_api_route(
+    "/webhooks/razorpay",
+    webhook_razorpay,
+    methods=["POST"],
+    tags=["webhooks"],
+    summary="Razorpay webhook receiver",
+)
+app.add_api_route(
+    "/webhooks/cashfree",
+    webhook_cashfree,
+    methods=["POST"],
+    tags=["webhooks"],
+    summary="Cashfree webhook receiver",
 )
 
 
 # ---------------------------------------------------------------------------
-# Health / root
+# Health
 # ---------------------------------------------------------------------------
 
-@app.get("/")
+@app.get("/", tags=["health"])
 def root():
     return {"status": "ok", "docs": "/docs"}
 
 
-@app.get("/health")
+@app.get("/health", tags=["health"])
 def health():
     return {"status": "healthy"}

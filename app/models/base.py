@@ -34,7 +34,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    stripe_customer_id = Column(String, unique=True, nullable=True)
+    gateway_customer_id = Column(String, unique=True, nullable=True)  # set after first payment
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     api_keys = relationship("ApiKey", back_populates="user", cascade="all, delete-orphan")
@@ -58,12 +58,15 @@ class Subscription(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
-    stripe_subscription_id = Column(String, unique=True, nullable=True)  # None for free plan
+    # gateway-neutral identifiers
+    gateway = Column(String, nullable=True)                        # "razorpay" | "cashfree"
+    gateway_subscription_id = Column(String, unique=True, nullable=True)  # gateway's subscription/order ID
+    gateway_customer_id = Column(String, nullable=True)            # gateway's customer ID
     plan = Column(Enum(PlanName), default=PlanName.free, nullable=False)
     status = Column(String, default="active")  # active | past_due | canceled | trialing
     usage_count = Column(Integer, default=0)
     period_start = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    period_end = Column(DateTime, nullable=True)   # None = free plan (monthly reset handled manually)
+    period_end = Column(DateTime, nullable=True)   # None = free plan
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
                         onupdate=lambda: datetime.now(timezone.utc))
 
