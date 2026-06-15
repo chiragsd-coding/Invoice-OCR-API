@@ -1,0 +1,53 @@
+{
+  "info": {
+    "name": "Invoice OCR API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:10000" },
+    { "key": "api_key", "value": "PASTE_YOUR_KEY_FROM_GET_/" }
+  ],
+  "item": [
+    {
+      "name": "Health Check / Get API Key",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/",
+        "description": "Returns status and the default API key. Copy the key into the api_key collection variable."
+      }
+    },
+    {
+      "name": "Upload Invoice (OCR)",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/ocr/upload",
+        "header": [
+          { "key": "x-api-key", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "file",
+              "type": "file",
+              "src": "",
+              "description": "Invoice image (PNG/JPG) or PDF"
+            }
+          ]
+        },
+        "description": "Upload an invoice file. Returns extracted OCR text and the stored record ID."
+      }
+    },
+    {
+      "name": "List OCR Results",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/ocr/results",
+        "header": [
+          { "key": "x-api-key", "value": "{{api_key}}" }
+        ],
+        "description": "Returns the 20 most recent OCR results (id, filename, created_at)."
+      }
+    }
+  ]
+}
